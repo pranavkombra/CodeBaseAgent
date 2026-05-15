@@ -15,9 +15,17 @@ def fetch_github_repo(repo_url):
     if GITHUB_TOKEN:
         headers["Authorization"] = f"token {GITHUB_TOKEN}"
     
-    api_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/master?recursive=1"
-    response = requests.get(api_url, headers=headers)
-    tree = response.json().get("tree", [])
+    # Try both master and main branches
+    tree = []
+    branch_name = "master"  # Default branch
+    for branch in ["master", "main"]:
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
+        response = requests.get(api_url, headers=headers)
+        if response.status_code == 200:
+            tree = response.json().get("tree", [])
+            if tree:
+                branch_name = branch
+                break
     
     files = []
     for item in tree:
@@ -27,7 +35,7 @@ def fetch_github_repo(repo_url):
             not item["path"].startswith("docs/") and
             not item["path"].startswith("docs_src/")):
             
-            file_url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/{item['path']}"
+            file_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch_name}/{item['path']}"
             content = requests.get(file_url, headers=headers).text
             files.append({
                 "path": item["path"],
