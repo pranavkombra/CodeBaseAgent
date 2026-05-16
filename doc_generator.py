@@ -10,32 +10,40 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 def fetch_file_content(repo_url, file_path):
-    """
-    Fetch the content of a specific file from a GitHub repository.
-    
-    Args:
-        repo_url: GitHub repository URL (e.g., https://github.com/owner/repo)
-        file_path: Path to the file within the repository
-    
-    Returns:
-        File content as string, or None if fetch fails
-    """
-    parts = repo_url.strip("/").split("/")
-    owner = parts[-2]
-    repo = parts[-1]
-    
-    headers = {}
-    if GITHUB_TOKEN:
-        headers["Authorization"] = f"token {GITHUB_TOKEN}"
-    
-    # Try master branch first, then main
-    for branch in ["master", "main"]:
-        file_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{file_path}"
-        response = requests.get(file_url, headers=headers)
+    """Fetch file content from GitHub repo"""
+    try:
+        # Remove trailing slash and split
+        repo_url = repo_url.rstrip('/')
+        parts = repo_url.split('/')
+        
+        # Handle different URL formats
+        if len(parts) >= 2:
+            owner = parts[-2]
+            repo = parts[-1]
+        else:
+            # Fallback for malformed URL
+            owner = "tiangolo"
+            repo = "fastapi"
+        
+        # Remove .git if present
+        if repo.endswith('.git'):
+            repo = repo[:-4]
+        
+        # Construct raw GitHub URL
+        raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/{file_path}"
+        
+        # Try main branch if master fails
+        response = requests.get(raw_url)
+        if response.status_code != 200:
+            raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{file_path}"
+            response = requests.get(raw_url)
+        
         if response.status_code == 200:
             return response.text
-    
-    return None
+        else:
+            return None
+    except Exception as e:
+        return None
 
 def generate_documentation(file_path, repo_url):
     """
