@@ -226,8 +226,8 @@ with st.sidebar:
     # Footer
     st.markdown("""
     <div class="footer">
-        <small>Built with ❤️ using<br/>
-        Groq • LangChain • ChromaDB</small>
+        <small>Built by pranav k s<br/>
+        pranavkombra@gmail.com</small>
     </div>
     """, unsafe_allow_html=True)
 

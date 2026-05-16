@@ -1,19 +1,26 @@
 import chromadb
 from chromadb.utils import embedding_functions
+from chromadb.api.types import EmbeddingFunction
 import os
 from dotenv import load_dotenv
 from ingestor import fetch_github_repo
+from typing import cast
 
 load_dotenv()
 
 # Setup ChromaDB
 client = chromadb.PersistentClient(path="./chroma_db")
 
-embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+# Use SentenceTransformerEmbeddingFunction for better type compatibility
+# DefaultEmbeddingFunction can cause type issues with newer ChromaDB versions
+# Cast to satisfy type checker - the function is compatible at runtime
+embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name="all-MiniLM-L6-v2"
+)
 
 collection = client.get_or_create_collection(
     name="codebase",
-    embedding_function=embedding_fn
+    embedding_function=cast(EmbeddingFunction, embedding_fn)
 )
 
 def chunk_text(text, chunk_size=500):
@@ -66,7 +73,11 @@ if __name__ == "__main__":
     # Test search
     print("\nTesting search...")
     results = search_codebase("how does routing work")
-    for i, doc in enumerate(results["documents"][0]):
-        print(f"\n--- Result {i+1} ---")
-        print(f"File: {results['metadatas'][0][i]['path']}")
-        print(doc[:200])
+    if results and results.get("documents") and results["documents"][0]:
+        for i, doc in enumerate(results["documents"][0]):
+            print(f"\n--- Result {i+1} ---")
+            if results.get("metadatas") and results["metadatas"][0]:
+                print(f"File: {results['metadatas'][0][i]['path']}")
+            print(doc[:200])
+    else:
+        print("No results found")
