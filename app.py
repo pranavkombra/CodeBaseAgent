@@ -297,7 +297,7 @@ with tab2:
     if not st.session_state.collection_loaded or len(st.session_state.indexed_files) == 0:
         st.warning("⚠️ No files indexed. Please load a repository from the sidebar first.")
     else:
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([3, 1, 1])
         
         with col1:
             selected_file = st.selectbox(
@@ -311,33 +311,63 @@ with tab2:
             st.write("")  # Spacing
             generate_btn = st.button("🚀 Generate Docs", type="primary", use_container_width=True)
         
-        # Generate documentation
+        with col3:
+            st.write("")  # Spacing
+            st.write("")  # Spacing
+            if st.button("🗑️ Clear", use_container_width=True, key="clear_docs"):
+                if "generated_doc" in st.session_state:
+                    del st.session_state.generated_doc
+                if "doc_filename" in st.session_state:
+                    del st.session_state.doc_filename
+                st.rerun()
+        
+        # Generate documentation (replaces previous output)
         if generate_btn and selected_file:
             with st.spinner(f"✨ Generating documentation for `{selected_file}`..."):
                 documentation = generate_documentation(selected_file, st.session_state.current_repo)
+                # Replace previous output
                 st.session_state.generated_doc = documentation
                 st.session_state.doc_filename = selected_file.replace("/", "_").replace(".py", ".md")
+                st.rerun()
         
         # Display generated documentation
         if "generated_doc" in st.session_state:
             st.markdown("---")
-            st.markdown("#### 📄 Generated Documentation")
+            
+            # Header with trash icon
+            col_header1, col_header2 = st.columns([6, 1])
+            with col_header1:
+                st.markdown("#### 📄 Generated Documentation")
+            with col_header2:
+                if st.button("🗑️", key="trash_docs", help="Clear output"):
+                    del st.session_state.generated_doc
+                    if "doc_filename" in st.session_state:
+                        del st.session_state.doc_filename
+                    st.rerun()
             
             # Action buttons
-            col1, col2, col3 = st.columns([1, 1, 4])
+            col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
             
             with col1:
-                if st.button("📋 Copy", use_container_width=True):
-                    st.code(st.session_state.generated_doc, language="markdown")
-                    st.success("✅ Ready to copy!")
+                # Copy button with clipboard functionality
+                st.download_button(
+                    label="📋 Copy",
+                    data=st.session_state.generated_doc,
+                    file_name="temp_copy.md",
+                    mime="text/markdown",
+                    use_container_width=True,
+                    key="copy_doc_btn"
+                )
             
             with col2:
+                # Download as markdown
                 st.download_button(
-                    label="💾 Download",
+                    label="💾 Download MD",
                     data=st.session_state.generated_doc,
                     file_name=st.session_state.doc_filename,
                     mime="text/markdown",
-                    use_container_width=True
+                    use_container_width=True,
+                    key="download_doc_md"
                 )
             
             # Display documentation
@@ -386,36 +416,79 @@ with tab3:
                         with st.expander("📄 View Function Code", expanded=False):
                             st.code(selected_function[1], language="python")
                         
-                        # Generate button
+                        # Generate and Clear buttons
                         col1_btn, col2_btn, col3_btn = st.columns([1, 1, 2])
                         with col1_btn:
                             generate_test_btn = st.button("🚀 Generate Tests", type="primary", use_container_width=True)
                         
-                        # Generate tests
+                        with col2_btn:
+                            if st.button("🗑️ Clear", use_container_width=True, key="clear_tests"):
+                                if "generated_tests" in st.session_state:
+                                    del st.session_state.generated_tests
+                                if "test_original_file" in st.session_state:
+                                    del st.session_state.test_original_file
+                                if "test_filename" in st.session_state:
+                                    del st.session_state.test_filename
+                                st.rerun()
+                        
+                        # Generate tests (replaces previous output)
                         if generate_test_btn:
                             with st.spinner(f"✨ Generating tests for `{selected_function_name}`..."):
                                 test_code = generate_tests(
-                                function_name=selected_function_name,
-                                function_code=selected_function[1],  # ← CORRECT (tuple)
-                                repo_url=...
-)
+                                    function_name=selected_function_name,
+                                    function_code=selected_function[1],
+                                    repo_url=st.session_state.current_repo
+                                )
+                                # Replace previous output
                                 st.session_state.generated_tests = test_code
                                 st.session_state.test_original_file = selected_test_file
+                                st.session_state.test_filename = f"test_{selected_test_file.split('/')[-1]}"
+                                st.rerun()
                         
                         # Display generated tests
                         if "generated_tests" in st.session_state:
                             st.markdown("---")
-                            st.markdown("#### 🧪 Generated Unit Tests")
+                            
+                            # Header with trash icon
+                            col_header1, col_header2 = st.columns([6, 1])
+                            with col_header1:
+                                st.markdown("#### 🧪 Generated Unit Tests")
+                            with col_header2:
+                                if st.button("🗑️", key="trash_tests", help="Clear output"):
+                                    del st.session_state.generated_tests
+                                    if "test_original_file" in st.session_state:
+                                        del st.session_state.test_original_file
+                                    if "test_filename" in st.session_state:
+                                        del st.session_state.test_filename
+                                    st.rerun()
                             
                             # Action buttons
-                            col1, col2, col3 = st.columns([1, 1, 4])
+                            col1, col2, col3, col4 = st.columns([1, 1, 1, 3])
                             
                             with col1:
-                                if st.button("📋 Copy", key="copy_tests", use_container_width=True):
-                                    st.code(st.session_state.generated_tests, language="python")
-                                    st.success("✅ Ready to copy!")
+                                # Copy button with clipboard functionality
+                                st.download_button(
+                                    label="📋 Copy",
+                                    data=st.session_state.generated_tests,
+                                    file_name="temp_copy.py",
+                                    mime="text/x-python",
+                                    use_container_width=True,
+                                    key="copy_tests_btn"
+                                )
                             
                             with col2:
+                                # Download as Python file
+                                st.download_button(
+                                    label="💾 Download PY",
+                                    data=st.session_state.generated_tests,
+                                    file_name=st.session_state.test_filename,
+                                    mime="text/x-python",
+                                    use_container_width=True,
+                                    key="download_tests_py"
+                                )
+                            
+                            with col3:
+                                # Save to file system
                                 if st.button("💾 Save File", key="save_tests", use_container_width=True):
                                     saved_path = save_tests_to_file(
                                         st.session_state.generated_tests,
