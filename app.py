@@ -260,34 +260,48 @@ with tab1:
                 st.markdown(message["content"])
         
         # Chat input
-        if prompt := st.chat_input("Example: How does routing work in this codebase?"):
-            # Add user message
+        if prompt := st.chat_input("Example: How does routing work in FastAPI?"):
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
             
-            # Get answer from vectorstore
             with st.chat_message("assistant"):
-                with st.spinner("🔍 Searching codebase..."):
+                with st.spinner("Searching and generating answer..."):
+                    # Search for relevant code
                     results = search_codebase(prompt, n_results=3)
                     
-                    # Format response
-                    response = "### 📚 Found Relevant Code:\n\n"
+                    # Build context from results
+                    context = ""
                     if results and results.get("documents") and results.get("metadatas"):
                         documents = results["documents"]
                         metadatas = results["metadatas"]
-                        if documents and metadatas and len(documents) > 0 and len(metadatas) > 0:
-                            for i, doc in enumerate(documents[0]):
-                                file_path = metadatas[0][i].get("path", "Unknown")
-                                response += f"**{i+1}. File: `{file_path}`**\n\n"
-                                response += f"```python\n{doc[:500]}...\n```\n\n"
-                        else:
-                            response = "❌ No relevant code found. Try rephrasing your question."
-                    else:
-                        response = "❌ No relevant code found. Try rephrasing your question."
+                        for i, doc in enumerate(documents[0]):
+                            file_path = metadatas[0][i].get("path", "Unknown")
+                            context += f"File: {file_path}\n```python\n{doc[:1000]}\n```\n\n"
                     
-                    st.markdown(response)
-                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    # Generate answer using Groq
+                    from openai import OpenAI
+                    import os
+                    
+                    client = OpenAI(
+                        api_key=os.getenv("GROQ_API_KEY"),
+                        base_url="https://api.groq.com/openai/v1"
+                    )
+                    
+                    completion = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=[
+                            {"role": "system", "content": "You are a code expert. Answer questions based on the code provided."},
+                            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {prompt}\n\nAnswer based on the code above:"}
+                        ],
+                        temperature=0.3
+                    )
+                    
+                    answer = completion.choices[0].message.content
+                    st.markdown(answer)
+                    
+                    # Save to history
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
 
 # ==================== TAB 2: DOCUMENTATION ====================
 with tab2:
