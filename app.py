@@ -436,15 +436,15 @@ with tab3:
                             with st.spinner(f"✨ Generating tests for `{selected_function_name}`..."):
                                 test_code = generate_tests(
                                     function_name=selected_function_name,
-                                    function_code=selected_function[1],
-                                    repo_url=st.session_state.current_repo
+                                    function_code=selected_function[1]
                                 )
+
                                 # Replace previous output
                                 st.session_state.generated_tests = test_code
                                 st.session_state.test_original_file = selected_test_file
                                 st.session_state.test_filename = f"test_{selected_test_file.split('/')[-1]}"
                                 st.rerun()
-                        
+
                         # Display generated tests
                         if "generated_tests" in st.session_state:
                             st.markdown("---")

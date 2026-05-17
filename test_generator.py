@@ -32,16 +32,23 @@ def extract_functions(file_content):
             i += 1
     return functions
 
-def generate_tests(function_name, function_code, repo_url):
-    prompt = f"Write pytest tests for this function: {function_name}\n\nCode:\n{function_code}\n\nRepository: {repo_url}\n\nReturn only Python code."
+def generate_tests(function_name, function_code):
+    # Truncate long functions
+    if len(function_code) > 3000:
+        function_code = function_code[:3000] + "\n# ... (code truncated due to length)"
     
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
+    prompt = f"Write pytest tests for: {function_name}\n\nCode:\n{function_code}\n\nReturn only Python code."
     
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",  # Smaller model = lower token usage
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=1500  # Limit response size
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"# Error: {str(e)}"
 
 def save_tests_to_file(test_code, original_file_path):
     test_path = f"test_{os.path.basename(original_file_path)}"
