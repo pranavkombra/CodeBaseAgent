@@ -35,12 +35,6 @@
 
 ---
 
-### 📹 Demo Video
-
-[Link to your screen recording]
-
----
-
 ### 🔗 Live Demo
 
 [https://codebaseagent-9hhhczn64swgxc3tgpclvq.streamlit.app/](https://codebaseagent-9hhhczn64swgxc3tgpclvq.streamlit.app/)
